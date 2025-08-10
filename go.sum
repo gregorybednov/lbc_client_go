@@ -1,4 +1,6 @@
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/gregorybednov/lbc_sdk v0.0.0-20250810102513-432a51e65f76 h1:e3A+1v+Mjt8nuJcVnHuhHZuh4052KRLCUBpH4g74rVs=
+github.com/gregorybednov/lbc_sdk v0.0.0-20250810102513-432a51e65f76/go.mod h1:DBE00+SaYBtD4qw+nOtSTLuF6h9Ia4TkuBMJB+6krik=
 github.com/spf13/pflag v1.0.7 h1:vN6T9TfwStFPFM5XzjsvmzZkLuaLX+HS+0SeFLRgU6M=
 github.com/spf13/pflag v1.0.7/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=

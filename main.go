@@ -13,34 +13,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	types "github.com/gregorybednov/lbc_sdk"
 	"github.com/spf13/pflag"
 )
-
-type CommiterTxBody struct {
-	Type           string `json:"type"`
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	CommiterPubKey string `json:"commiter_pubkey"`
-}
-
-type PromiseTxBody struct {
-	Type        string `json:"type"`
-	ID          string `json:"id"`
-	Description string `json:"description"`
-	Timestamp   int64  `json:"timestamp"`
-}
-
-type CommitmentTxBody struct {
-	Type       string `json:"type"`
-	ID         string `json:"id"`
-	PromiseID  string `json:"promise_id"`
-	CommiterID string `json:"commiter_id"`
-}
-
-type SignedTx struct {
-	Body      any    `json:"body"`
-	Signature string `json:"signature"`
-}
 
 type rpcResp struct {
 	JSONRPC string `json:"jsonrpc"`
@@ -60,14 +36,6 @@ type rpcResp struct {
 			Log  string `json:"log"`
 		} `json:"deliver_tx"`
 	} `json:"result"`
-}
-
-type CompoundTx struct {
-	Body struct {
-		Promise    *PromiseTxBody    `json:"promise"`
-		Commitment *CommitmentTxBody `json:"commitment"`
-	} `json:"body"`
-	Signature string `json:"signature"`
 }
 
 const configDir = "./config"
@@ -109,7 +77,7 @@ func ensureKeypair() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	return ed25519.PublicKey(pub), ed25519.PrivateKey(priv), nil
 }
 
-func sendTx(tx SignedTx, rpcURL string) error {
+func sendTx(tx types.SignedTx, rpcURL string) error {
 	txBytes, _ := json.Marshal(tx)
 	txB64 := base64.StdEncoding.EncodeToString(txBytes)
 	final := map[string]any{
@@ -141,15 +109,15 @@ func registerCommiter(name, rpcURL string) error {
 	pub, priv, _ := ensureKeypair()
 	pubB64 := base64.StdEncoding.EncodeToString(pub)
 	id := "commiter:" + pubB64
-	body := CommiterTxBody{
+	body := types.CommiterTxBody{
 		Type:           "commiter",
 		ID:             id,
 		Name:           name,
-		CommiterPubKey: pubB64, // ← ты думаешь, а на деле может быть иначе
+		CommiterPubKey: pubB64,
 	}
 	bodyBytes, _ := json.Marshal(body)
 	sig := ed25519.Sign(priv, bodyBytes)
-	tx := SignedTx{Body: body, Signature: base64.StdEncoding.EncodeToString(sig)}
+	tx := types.SignedTx{Body: body, Signature: base64.StdEncoding.EncodeToString(sig)}
 	return sendTx(tx, rpcURL)
 }
 
@@ -162,13 +130,13 @@ func createPromise(desc, rpcURL string) error {
 	commitmentID := "commitment:" + uuid.NewString()
 
 	// Объекты тела
-	promise := &PromiseTxBody{
+	promise := &types.PromiseTxBody{
 		Type:        "promise",
 		ID:          promiseID,
 		Description: desc,
 		Timestamp:   time.Now().Unix(),
 	}
-	commitment := &CommitmentTxBody{
+	commitment := &types.CommitmentTxBody{
 		Type:       "commitment",
 		ID:         commitmentID,
 		PromiseID:  promiseID,
@@ -177,8 +145,8 @@ func createPromise(desc, rpcURL string) error {
 
 	// Сборка тела для подписи
 	bodyStruct := struct {
-		Promise    *PromiseTxBody    `json:"promise"`
-		Commitment *CommitmentTxBody `json:"commitment"`
+		Promise    *types.PromiseTxBody    `json:"promise"`
+		Commitment *types.CommitmentTxBody `json:"commitment"`
 	}{
 		Promise:    promise,
 		Commitment: commitment,
@@ -193,7 +161,7 @@ func createPromise(desc, rpcURL string) error {
 	sigB64 := base64.StdEncoding.EncodeToString(sig)
 
 	// Формирование транзакции
-	compound := CompoundTx{
+	compound := types.CompoundTx{
 		Body:      bodyStruct,
 		Signature: sigB64,
 	}
