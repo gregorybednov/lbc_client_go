@@ -126,9 +126,9 @@ type PromiseTxBody struct {
 	Type            string  `json:"type"` // "promise"
 	ID              string  `json:"id"`
 	Text            string  `json:"text"`
-	Due             int64   `json:"due"`
-	BeneficiaryID   string  `json:"beneficiary_id"`
-	ParentPromiseID *string `json:"parent_promise_id"`
+	Due             int64   `json:"due,omitempty"`
+	BeneficiaryID   string  `json:"beneficiary_id,omitempty"`
+	ParentPromiseID *string `json:"parent_promise_id,omitempty"`
 }
 
 type CommitmentTxBody struct {
@@ -136,7 +136,7 @@ type CommitmentTxBody struct {
 	ID         string `json:"id"`
 	PromiseID  string `json:"promise_id"`
 	CommiterID string `json:"commiter_id"`
-	Due        int64  `json:"due"`
+	Due        int64  `json:"due,omitempty"`
 }
 
 type SignedTx struct {
@@ -237,16 +237,17 @@ func createPromiseAndCommit(args CreatePromiseArgs, rpcURL string) error {
 	if args.Text == "" {
 		return errors.New("--text is required")
 	}
-	if args.BeneficiaryID == "" {
-		return errors.New("--beneficiary-id is required")
-	}
-	promiseDue, err := parseWhen(args.DueISO)
-	if err != nil {
-		return fmt.Errorf("promise --due: %w", err)
-	}
-	commitDue, err := parseWhen(args.CommitmentDueISO)
-	if err != nil {
-		return fmt.Errorf("commitment --commitment-due: %w", err)
+	//if args.BeneficiaryID == "" {
+	//	return errors.New("--beneficiary-id is required")
+	//}
+	var due int64
+
+	if args.CommitmentDueISO != "" {
+		var err error
+		due, err = parseWhen(args.CommitmentDueISO)
+		if err != nil {
+			return fmt.Errorf("promise --due: %w", err)
+		}
 	}
 
 	pub, priv, err := ensureKeypair()
@@ -269,7 +270,7 @@ func createPromiseAndCommit(args CreatePromiseArgs, rpcURL string) error {
 		Type:            "promise",
 		ID:              promiseID,
 		Text:            args.Text,
-		Due:             promiseDue,
+		Due:             due,
 		BeneficiaryID:   args.BeneficiaryID,
 		ParentPromiseID: parentPtr,
 	}
@@ -278,7 +279,7 @@ func createPromiseAndCommit(args CreatePromiseArgs, rpcURL string) error {
 		ID:         commitmentID,
 		PromiseID:  promiseID,
 		CommiterID: commiterID,
-		Due:        commitDue,
+		Due:        due,
 	}
 
 	var compound CompositeSignedTx
@@ -431,8 +432,8 @@ func sendMain(args []string) {
 		fmt.Printf("✅ Beneficiary created: %s\n", id)
 	default:
 		// promise+commitment
-		if text == "" || due == "" || beneficiaryID == "" || commitmentDue == "" {
-			fmt.Fprintln(os.Stderr, "⛔ For promise+commitment you must pass --text, --due, --beneficiary-id, --commitment-due")
+		if text == "" /* || due == "" || beneficiaryID == "" || commitmentDue == "" */ {
+			fmt.Fprintln(os.Stderr, "⛔ For promise+commitment you must pass --text")
 			os.Exit(1)
 		}
 		args := CreatePromiseArgs{
@@ -440,7 +441,7 @@ func sendMain(args []string) {
 			DueISO:           due,
 			BeneficiaryID:    beneficiaryID,
 			ParentPromiseID:  parentID,
-			CommitmentDueISO: commitmentDue,
+			CommitmentDueISO: due,
 		}
 		if err := createPromiseAndCommit(args, rpc); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
